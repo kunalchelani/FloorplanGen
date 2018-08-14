@@ -1,0 +1,11 @@
+This readme lists the steps to create a 3D point cloud using the ORB-SLAM2 library.
+
+1. Pre req : RGB and Depth frames (obtained from the .klg file).
+2. Run associate_ours.py as python associate_ours.py base_directory
+3. From the build directory, run the orb_rgbd exectuable as : " ./orb_rgbd vocab_file settings_file RGBImagesDirectory DepthImagesDirectory AssociationFilename trajectoryFilename keyframeTrajectoryFilename"
+ 
+Using the trajectory obtained from the above steps, obtain the volumetric reconstruction by following these steps:
+
+1. Run assocToIndiLists as "python assocToIndiLists.py base_directory"
+2. Generate Pointcloud using "python generate_registered_pointcloud.py rgb_list depth_list trajectory_file output_cloudName.ply --nth 100"
+
