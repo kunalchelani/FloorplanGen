@@ -34,18 +34,20 @@ void getPlanes(pcl::PointCloud<pcl::PointXYZ> cloud, Eigen::Vector3f axis, int n
 	pcl::SampleConsensusModelParallelPlane<pcl::PointXYZ>::Ptr planeModel(new pcl::SampleConsensusModelParallelPlane<pcl::PointXYZ>( cloud.makeShared() ));
 	
 	//Eigen::Vector3f axis(0.0, 1.0, 0.0);
-	std::cout << "Looking for planes parallel to : \n" << axis << std::endl;
-	planeModel->setAxis(axis);
-	planeModel->setEpsAngle(pcl::deg2rad(2.0));
+	Eigen::Vector3f axis_normalized = axis.normalized();
 
-	pcl::RandomSampleConsensus<pcl::PointXYZ> sac (planeModel, 0.04);
+	std::cout << "Looking for planes parallel to : \n" << axis << std::endl;
+	planeModel->setAxis(axis_normalized);
+	planeModel->setEpsAngle(pcl::deg2rad(10.0));
+
+	pcl::RandomSampleConsensus<pcl::PointXYZ> sac (planeModel, 0.03);
 
 	std::vector<Eigen::VectorXf> coeffs; 
 	std::vector<int> current_points_vec(cloud.points.size());
 	std::iota(current_points_vec.begin(), current_points_vec.end(), 0);
 	
-	float fitWithinThreshold = 0.05;
-	float removeWithinThreshold = 0.5;
+	float fitWithinThreshold = 0.1;
+	float removeWithinThreshold = 0.3;
 
 	std::string planeParamsFileName = prodFilesDirectory;
 	planeParamsFileName.append("/plane_params.txt");
@@ -132,8 +134,7 @@ int main(int argc, char* argv[]){
     }
 
 	Eigen::Vector3f axis(a,b,c);
-	axis.normalize();
-
+	
 	std::cout << "Axis vector : \n" << axis << std::endl;
 	
 	pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);

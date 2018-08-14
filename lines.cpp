@@ -64,7 +64,7 @@ void writePointsWithinDistance(std::vector<int> indices, pcl::PointCloud<pcl::Po
 }
 
 
-std::vector<Eigen::VectorXf> fitFourLines(pcl::PointCloud<pcl::PointXYZ> cloud, std::string prodFilesDirectory){
+std::vector<Eigen::VectorXf> fitLines(pcl::PointCloud<pcl::PointXYZ> cloud, int numLines, std::string prodFilesDirectory){
 
 	pcl::SampleConsensusModelLine<pcl::PointXYZ>::Ptr lineModel(new pcl::SampleConsensusModelLine<pcl::PointXYZ>( cloud.makeShared() ));
 	pcl::RandomSampleConsensus<pcl::PointXYZ> sac (lineModel, 0.02);
@@ -77,7 +77,7 @@ std::vector<Eigen::VectorXf> fitFourLines(pcl::PointCloud<pcl::PointXYZ> cloud, 
 	//bool parallelCheckPass = true;
 	float remove_thresh = 0.35;
 	float inlier_thresh = 0.045;
- 	for (int i = 0; i < 4 ; i ++){
+ 	for (int i = 0; i < numLines ; i ++){
 		
 		lineModel->setIndices(current_points_vec);
 		Eigen::VectorXf coeff;
@@ -113,6 +113,7 @@ std::vector<Eigen::VectorXf> fitFourLines(pcl::PointCloud<pcl::PointXYZ> cloud, 
 
 }
 
+// This is an implementation for four lines only. To do multiple lines for randomly shaped rooms.
 void getIntersectionPoints(std::vector<Eigen::VectorXf> coeffs, std::string prodFilesDirectory){
 
 	for (std::vector<Eigen::VectorXf>::iterator it  =  coeffs.begin() ; it < coeffs.end(); it++){
@@ -222,19 +223,50 @@ void getIntersectionPoints(std::vector<Eigen::VectorXf> coeffs, std::string prod
 
 int main(int argc, char * argv[]){
 	
-	// Usage : ./lines <input-cloud name> <base directory for line point clouds and intersection file>
+	// Usage : ./lines <input-directory : string. Read project Readme for more info.> <number of lines to detect : int >
 
+	/*
 	if ( argc != 3 ){
 		std::cout <<  "Please enter two file names" << std::endl;
 	}
-		
-	std::string filename = std::string(argv[1]);
-	std::string prodFilesDirectory = std::string(argv[2]);		
-	Eigen::Vector4f planeParams(atof(argv[3]), atof(argv[4]), atof(argv[5]), atof(argv[6]));
+	*/
+
+	std::string inputDirectory = std::string(argv[1]);
+	std::string height = argv[2];
+	int numLines = std::atoi(argv[3]);
+
+	std::string inputCloud = inputDirectory;
+	inputCloud.append("/full/strips/strip_");
+	inputCloud.append(height);
+	inputCloud.append(".ply");
+
+	std::string prodFilesDirectory = inputDirectory;
+	prodFilesDirectory.append("/full/strips/");
+
+	std::string planeParamsFile = inputDirectory;
+	planeParamsFile.append("/full/planes/ground.txt");
+
+	std::ifstream fGround;
+	fGround.open(planeParamsFile);
+	
+	std::string s;
+	float a,b,c;
+
+    getline(fGround, s);
+    if(!s.empty()) {
+
+    	std::stringstream ss;
+    	ss << s;
+    	ss >> a;
+    	ss >> b;
+    	ss >> c;
+    }
+
+	Eigen::Vector4f planeParams(a, b, c , 1.0);
 
 	pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
 
-	if (pcl::io::loadPLYFile<pcl::PointXYZ> (filename , *cloud) == -1) //* load the file
+	if (pcl::io::loadPLYFile<pcl::PointXYZ> (inputCloud , *cloud) == -1) //* load the file
   	{
     	PCL_ERROR ("Couldn't read file\n");
     	return (-1);
@@ -247,9 +279,9 @@ int main(int argc, char * argv[]){
 
 	pcl::PointCloud<pcl::PointXYZ> flatCloud = projectOntoPlane(cloud, planeParams);
 
-	std::vector<Eigen::VectorXf> coeffs = fitFourLines(flatCloud,prodFilesDirectory );
+	std::vector<Eigen::VectorXf> coeffs = fitLines(flatCloud, numLines, prodFilesDirectory );
 
-	getIntersectionPoints(coeffs, prodFilesDirectory);
+	if (numLines == 4) getIntersectionPoints(coeffs, prodFilesDirectory);
 
 	return 0;
 }

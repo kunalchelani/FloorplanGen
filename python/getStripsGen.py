@@ -1,5 +1,6 @@
 import sys
 import numpy as np
+import math
 
 # getStripsGen.py : This file is used to obtain the intersection of a plane with a pointcloud. Variable 'eps' controls the distance from plane within which points will be selected.
 
@@ -13,15 +14,16 @@ import numpy as np
 def getPointsArray(inputCloud):
 
 	f = open(inputCloud, 'r')
-	
-	for i in range(0,2):
-		f.readline()
+	st = [""]
+	while (not st[0] == "element"):
+		st = f.readline().split(" ")
 
-	numPoints = int(f.readline().split(' ')[2])
+	numPoints = int(st[2])
+	print numPoints
+	while (not f.readline().strip() == "end_header"):
+		continue
 
-	for i in range(0, 8):
-		f.readline()
-
+	print "out"
 	points = np.zeros( (4, numPoints))
 
 	for i in range(0, numPoints):
@@ -59,16 +61,33 @@ def writePlyFile(points, outCloud):
 if __name__ == '__main__':
 
 	args = sys.argv[1:]
-	inputCloud =  args[0]
-	outCloud = args[1]
-	a = args[2]
-	b = args[3]
-	c = args[4]
-	height = float(args[5])
-	d = 1.0 - height*( sqrt(a**2 + b**2 + c**2)) 
+	
+	inputDirectory = args[0]
+	height = float(args[1])
+
+	inputCloud =  inputDirectory + "/full/out_cloud.ply"
+	outCloud = inputDirectory + "/full/strips/strip_{}".format(height) + ".ply"
+	groundParamsFile = inputDirectory + "/full/planes/ground.txt"
+
+	groundParams = open(groundParamsFile, "r")
+	nums = groundParams.readline().split(" ")
+	print nums[0]
+
+	a = float(nums[0])
+	b = float(nums[1])
+	c = float(nums[2])
+
+	
+
+	d = 1.0 - height*( math.sqrt(a**2 + b**2 + c**2)) 
 	planeParams = np.array([a, b, c, d ] , dtype = np.float32)
 	eps = 0.03
 
+	print "Getting points into an array"
 	points = getPointsArray(inputCloud)
+
+	print "Finding points at intersection of plane and room pointcloud"
 	intersectionPoints = getPlaneCloudIntersectionPoints(planeParams, points, eps)
+	
+	print "Writing ply file"	
 	writePlyFile(intersectionPoints, outCloud)
